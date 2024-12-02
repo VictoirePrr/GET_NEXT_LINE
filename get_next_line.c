@@ -6,103 +6,119 @@
 /*   By: vicperri <vicperri@student.42lyon.fr>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/21 16:00:27 by vicperri          #+#    #+#             */
-/*   Updated: 2024/11/26 15:20:53 by vicperri         ###   ########lyon.fr   */
+/*   Updated: 2024/12/02 15:11:52 by vicperri         ###   ########lyon.fr   */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
-#include <stdio.h>
-size_t	check_read(char *readbuffer)
-{
-	size_t	i;
 
-	i = 0;
-	while (readbuffer[i])
-	{
-		if (readbuffer[i] == '\0' || readbuffer[i] == '\n')
-			return (1);
-		i++;
-	}
-	return (0);
-}
-void	keep_leftovers(char *readbuffer, char *leftover)
-{
-	size_t	i;
-
-	i = 0;
-	while (readbuffer[i])
-	{
-		if (readbuffer[i] == '\n')
-			leftover = ft_strcpy(leftover, readbuffer);
-		i++;
-	}
-}
-
-char	*cpy_leftovers(char *leftover, char *line)
+void	ft_update(char *readbuffer)
 {
 	size_t	i;
 	size_t	j;
 
-	i = ft_strlen(line);
+	i = 0;
 	j = 0;
-	while (leftover[j])
+	while (readbuffer[i] && readbuffer[i] != '\n')
+		i++;
+	if (readbuffer[i] == '\n')
+		i++;
+	while (readbuffer[i])
 	{
-		line[i++] = leftover[j++];
+		readbuffer[j] = readbuffer[i];
+		i++;
+		j++;
 	}
-	line[i] = '\0';
-	ft_bzero(leftover, BUFFER_SIZE); // VIDANGE DU LEFTOVER
-	return (line);
+	readbuffer[j] = '\0';
 }
+
+char	*ft_strchr(const char *s, int c)
+{
+	char			*s1;
+	unsigned char	c1;
+	int				i;
+
+	s1 = (char *)s;
+	c1 = (unsigned char)c;
+	i = 0;
+	while (s1[i])
+	{
+		if (s1[i] == c1)
+			return (&s1[i]);
+		i++;
+	}
+	if (c1 == '\0')
+		return (&s1[i]);
+	return (NULL);
+}
+
+char	*ft_strdup(char *s1)
+{
+	size_t	len;
+	char	*dup;
+	size_t	i;
+
+	len = 0;
+	i = 0;
+	while (s1[len] && s1[len] != '\n')
+		len++;
+	if (s1[len] == '\n')
+		len++;
+	dup = malloc((len + 1) * sizeof(char));
+	if (!dup)
+		return (NULL);
+	while (i < len)
+	{
+		dup[i] = s1[i];
+		i++;
+	}
+	dup[i] = '\0';
+	return (dup);
+}
+
 char	*get_next_line(int fd)
 {
-	static char	leftover[BUFFER_SIZE] = {0};
-	char		*readbuffer;
+	static char	readbuffer[BUFFER_SIZE + 1] = {0};
 	char		*line;
-	size_t		bytes;
+	int			bytes;
 
-	bytes = 1;
-	line = NULL;
-	readbuffer = ft_calloc(BUFFER_SIZE + 1, sizeof(char));
-	if (!(readbuffer))
+	if (fd < 0 || BUFFER_SIZE <= 0)
 		return (NULL);
-	while (bytes > 0 && check_read(readbuffer) == 0)
+	bytes = 1;
+	line = ft_strdup(readbuffer);
+	if (!line)
+		return (NULL);
+	while (bytes > 0 && !ft_strchr(line, '\n'))
 	{
-		if (leftover[0] != '\0')
-			line = cpy_leftovers(leftover, line);
 		bytes = read(fd, readbuffer, BUFFER_SIZE);
 		if (bytes == -1)
-			return (free(readbuffer), free(line), NULL);
-		printf("Reading... readbuffer[0]: %c\n", readbuffer[0]);
+			return (ft_bzero(readbuffer, BUFFER_SIZE), free(line), NULL);
 		readbuffer[bytes] = '\0';
-		keep_leftovers(readbuffer, leftover);
 		line = ft_strjoin(line, readbuffer);
 		if (!line)
-			return (free(readbuffer), NULL);
-		readbuffer = trim_read(readbuffer, '\n');
+			return (NULL);
 	}
-	free(readbuffer);
+	if (!line[0] && bytes == 0)
+		return (free(line), NULL);
+	ft_update(readbuffer);
 	return (line);
 }
 
-#include <fcntl.h>
+// #include <fcntl.h>
 
-int	main(void)
-{
-	char *buffer;
-	char *fileName = "hello.txt";
+// int	main(void)
+// {
+// 	int fd = open("hello.txt", O_RDONLY);
+// 	char *line;
 
-	int fd = open(fileName, O_RDONLY);
-	if (fd == -1)
-	{
-		return (1);
-	}
+// 	if (fd < 0)
+// 		return (1);
 
-	while ((buffer = get_next_line(fd)) != NULL)
-	{
-		printf("%s\n", buffer);
-		free(buffer);
-	}
-
-	close(fd);
-	return (0);
-}
+// 	while ((line = get_next_line(fd)) != NULL)
+// 	{
+// 		printf("%s", line);
+// 		free(line);
+// 	}
+// 	close(fd);
+// 	return (0);
+// }
